@@ -1,0 +1,218 @@
+#!/usr/bin/python -O
+# vim: set ai et sts=4 ts=4 sw=4:
+#
+# csv2ofx - convert fixed-form CSV to OFX
+# Copyright (C) 2007  Timo Lindfors <timo.lindfors@iki.fi>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# This program is based on mastercard2ofx which had the following
+# copyright info:
+
+##
+## mastercard2ofx version 0.1 (30 Jan 2006)
+##
+## Converts a mastercard csv file like you get it from
+## https://umsatzabfrage.mastercard.at/Umsatzabfrage/
+## to an ofx file which you can import with gnucash.
+##
+## This does not output a 'really' correct ofx file, but it's
+## allright for this purpose.
+##
+## Copyright (c) 2005, Martin Klaffenboeck
+##   (martin.klaffenboeck@gmx.at)
+##
+## Published unter GPL (http://www.gnu.org/copyleft/gpl.html)
+##
+## If you patch this file, choose another name and send me your
+## changes (diff -Nur).  Thanks!
+##
+## Enjoy ;-)
+
+
+
+import sys
+import time
+#import md5
+import csv
+import os
+
+class ofx(object):
+    tags = []
+    def __init__(self, ofxfp):
+        self.fp = ofxfp
+        self.fp.write("""OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:UTF-8
+CHARSET:1252
+COMPRESSION:NONE
+OLDFILEUID:NONE
+NEWFILEUID:NONE
+""")
+
+    def write(self, str):
+        self.fp.write("  " * len(self.tags) + str)
+
+    def open(self, rawtag):
+        tag = rawtag.upper()
+        self.write("<" + tag + ">\n")
+        self.tags.append(tag)
+
+    def close(self, num=1):
+        for i in range(num):
+            self.write("</" + self.tags.pop() + ">\n")
+
+    def put(self, rawtag, value):
+        tag = rawtag.upper()
+        self.write("<" + tag + ">" + value + "</" + tag + ">\n")
+
+    def __del__(self):
+        self.close(len(self.tags))
+        self.fp.close()
+
+class OFXBase(object):
+    def __init__(self, file):
+        self.c = csv.reader(open(file))
+        self.x = ofx(open(os.path.splitext(file)[0] + '.ofx', 'w'))
+
+    def header(self):
+        self.x.open("OFX")
+        self.x.open("SIGNONMSGSRSV1")
+        self.x.open("SONRS")
+        self.x.open("STATUS")
+        self.x.put("CODE", "0")
+        self.x.put("SERVERITY", "INFO")
+        self.x.close() # STATUS
+
+        self.x.put("DTSERVER", time.strftime("%Y%m%d%H%M%S"))
+        self.x.put("LANGUAGE", "ENG")
+        self.x.close(2) # SONRS, SIGNONMSGRSV1
+
+        self.x.open("BANKMSGSRSV1")
+        self.x.open("STMTTRNRS")
+        self.x.put("TRNUID", "1")
+        self.x.open("STATUS")
+        self.x.put("CODE", "0")
+        self.x.put("SEVERITY", "INFO")
+        self.x.close() # STATUS
+
+class rbs2ofx(OFXBase):
+    def convert(self):
+        self.header()
+        self.x.open("STMTRS")
+        self.x.put("CURDEF", "GBP")
+
+        first = True
+        # transactions
+        for i, line in enumerate(self.c):
+            # Date, Type, Description, Value, Balance, Account Name, Account Number
+            if not line or len(line) < 8 or line[0] == "Date": # skip header and blank lines.
+                continue
+            # 29/05/2009,C/L,"'CASHLINE 28MAY",-50.00,15830.45,"'ACCOUNT NAME","'831531-0000000",
+            # csv gives a blank field because of the trailing comma.
+            date, code, desc, amount, balance, acct, acctid, junk = line
+            date = ''.join(date.split('/'))
+            desc = desc.strip("'").title()
+            if first: # not necessarily i == 0
+                first = False
+                #acct = acct.strip("'").title() # not used.
+                acctid = acctid.strip("'")
+                sort_code, acct_num = acctid.split('-')
+                #bankaccount
+                self.x.open("BANKACCTFROM")
+                self.x.put("BANKID", sort_code)
+                self.x.put("ACCTID", acct_num)
+                self.x.put("ACCTTYPE", "BANK")
+                self.x.close()
+
+                #tranlist
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", date)# + "000000[0:GMT]")
+                #         val = c.get_value("ACCTSTMT.STMTRS.DTSTART")
+                #         x.put("DTSTART", val + "000000[+1:CET]")
+                #         val = c.get_value("ACCTSTMT.STMTRS.DTEND")
+                #         x.put("DTEND", val + "000000[+1:CET]")
+
+            self.x.open("STMTTRN")
+            self.x.put("TRNTYPE", "XFER")
+            self.x.put("DTPOSTED", date)
+            self.x.put("FITID", date + str(i))
+            self.x.put("TRNAMT", amount)
+            self.x.put("NAME", desc)
+            self.x.close()
+        self.x.put("DTEND", date + "000000[0:GMT]")
+
+class csv2ofx(OFXBase):
+    def convert(self):
+        self.header()
+        self.x.open("STMTRS")
+        self.x.put("CURDEF", "GBP")
+
+        self.x.open("BANKACCTFROM")
+        self.x.put("ACCTTYPE", "CASH")
+        self.x.close()
+
+        first = True
+        for i,line in enumerate(self.c):
+            if not line or len(line) < 3 or line[0] == "Date":
+                continue
+            # "Date","Amount","Description"
+            (date, amount, desc), junk = line[:3], line[3:]
+            date = ''.join(date.split('/'))
+            desc = desc.strip("'").title()
+            if len(date) < len('dd/mm/yyyy'): # gnucash complains if not 4-digit years
+                date = line[0].split('/')
+                if len(date) == 1: # Assume this month
+                    date += ['%02d' % time.strftime('%m')]
+                if len(date) == 2: # Assume this year
+                    date += [time.strftime('%Y')]
+                if len(date[2]) < 4: # Assume this century
+                    date[2] = time.strftime('%C') + date[2]
+                if len(date[1]) == 1: # pad month
+                    date[1] = '%02d' % int(date[1])
+                if len(date[0]) == 1: # pad day
+                    date[0] = '%02d' % int(date[0])
+                date = ''.join(reversed(date))
+                print >>sys.stderr,"Assuming",line[0],"meant",date
+
+            if first:
+                first = False
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", date)
+                self.x.put("DTEND", date)
+
+            self.x.open("STMTTRN")
+            self.x.put("TRNTYPE", "DEBIT")
+            self.x.put("DTPOSTED", date)
+            self.x.put("FITID", date + str(i))
+            self.x.put("TRNAMT", '-' + amount if not amount.startswith('-') else amount)
+            self.x.put("NAME", desc)
+            self.x.close()
+        if 'date' not in locals():
+            raise ValueError('Not a CSV file or empty')
+
+
+def main():
+    if len(sys.argv) == 1:
+        c = csv2ofx(sys.stdin)
+        c.convert()
+    else:
+        for file in sys.argv[1:]:
+            c = csv2ofx(file)
+            c.convert()
+
+if __name__ == "__main__":
+    main()
