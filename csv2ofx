@@ -47,6 +47,7 @@ import time
 #import md5
 import csv
 import os
+from optparse import OptionParser
 
 class ofx(object):
     tags = []
@@ -94,7 +95,7 @@ class OFXBase(object):
         self.x.open("SONRS")
         self.x.open("STATUS")
         self.x.put("CODE", "0")
-        self.x.put("SERVERITY", "INFO")
+        self.x.put("SEVERITY", "INFO")
         self.x.close() # STATUS
 
         self.x.put("DTSERVER", time.strftime("%Y%m%d%H%M%S"))
@@ -206,11 +207,23 @@ class csv2ofx(OFXBase):
 
 
 def main():
-    if len(sys.argv) == 1:
-        c = csv2ofx(sys.stdin)
-        c.convert()
+    parser = OptionParser()
+    parser.add_option("-t", "--type", help="Use this parser.")
+    parser.add_option("-l", "--list", help="Show the available parsers.",
+        action="store_true")
+    options, args = parser.parse_args()
+
+    if options.type:
+        csv2ofx = getattr(sys.modules[globals()['__name__']],
+                          "%s2ofx" % options.type)
+    if options.list:
+        print "Available parsers:"
+        print
+        print '\n'.join([str(a)[:-4] for a in globals() if a.endswith("2ofx")])
+    elif len(args) == 0:
+        parser.print_help()
     else:
-        for file in sys.argv[1:]:
+        for file in args:
             c = csv2ofx(file)
             c.convert()
 
