@@ -41,16 +41,16 @@
 ## Enjoy ;-)
 
 
-
 import sys
 import time
-#import md5
 import csv
 import os
 from optparse import OptionParser
 
+
 class ofx(object):
     tags = []
+
     def __init__(self, ofxfp):
         self.fp = ofxfp
         self.fp.write("""OFXHEADER:100
@@ -84,7 +84,9 @@ NEWFILEUID:NONE
         self.close(len(self.tags))
         self.fp.close()
 
+
 class OFXBase(object):
+
     def __init__(self, file):
         self.c = csv.reader(open(file))
         self.x = ofx(open(os.path.splitext(file)[0] + '.ofx', 'w'))
@@ -110,7 +112,9 @@ class OFXBase(object):
         self.x.put("SEVERITY", "INFO")
         self.x.close() # STATUS
 
+
 class rbs2ofx(OFXBase):
+
     def convert(self):
         self.header()
         self.x.open("STMTRS")
@@ -119,10 +123,11 @@ class rbs2ofx(OFXBase):
         first = True
         # transactions
         for i, line in enumerate(self.c):
-            # Date, Type, Description, Value, Balance, Account Name, Account Number
-            if not line or len(line) < 8 or line[0] == "Date": # skip header and blank lines.
+            # skip header and blank lines.
+            if not line or len(line) < 8 or line[0] == "Date":
                 continue
-            # 29/05/2009,C/L,"'CASHLINE 28MAY",-50.00,15830.45,"'ACCOUNT NAME","'831531-0000000",
+            # 29/05/2009,C/L,"'CASHLINE 28MAY",-50.00,15830.45,
+            # "'ACCOUNT NAME","'831531-0000000",
             # csv gives a blank field because of the trailing comma.
             date, code, desc, amount, balance, acct, acctid, junk = line
             date = ''.join(date.split('/'))
@@ -156,7 +161,9 @@ class rbs2ofx(OFXBase):
             self.x.close()
         self.x.put("DTEND", date + "000000[0:GMT]")
 
+
 class csv2ofx(OFXBase):
+
     def convert(self):
         self.header()
         self.x.open("STMTRS")
@@ -167,14 +174,15 @@ class csv2ofx(OFXBase):
         self.x.close()
 
         first = True
-        for i,line in enumerate(self.c):
+        for i, line in enumerate(self.c):
             if not line or len(line) < 3 or line[0] == "Date":
                 continue
             # "Date","Amount","Description"
             (date, amount, desc), junk = line[:3], line[3:]
             date = ''.join(date.split('/'))
             desc = desc.strip("'").title()
-            if len(date) < len('dd/mm/yyyy'): # gnucash complains if not 4-digit years
+            # gnucash complains if not 4-digit years
+            if len(date) < len('dd/mm/yyyy'):
                 date = line[0].split('/')
                 if len(date) == 1: # Assume this month
                     date += ['%02d' % time.strftime('%m')]
@@ -187,7 +195,7 @@ class csv2ofx(OFXBase):
                 if len(date[0]) == 1: # pad day
                     date[0] = '%02d' % int(date[0])
                 date = ''.join(reversed(date))
-                print >>sys.stderr,"Assuming",line[0],"meant",date
+                print >> sys.stderr, "Assuming", line[0], "meant", date
 
             if first:
                 first = False
@@ -199,7 +207,8 @@ class csv2ofx(OFXBase):
             self.x.put("TRNTYPE", "DEBIT")
             self.x.put("DTPOSTED", date)
             self.x.put("FITID", date + str(i))
-            self.x.put("TRNAMT", '-' + amount if not amount.startswith('-') else amount)
+            self.x.put("TRNAMT",
+                '-' + amount if not amount.startswith('-') else amount)
             self.x.put("NAME", desc)
             self.x.close()
         if 'date' not in locals():
@@ -207,6 +216,7 @@ class csv2ofx(OFXBase):
 
 
 class santander2ofx(OFXBase):
+
     def convert(self):
         self.header()
         self.x.open("STMTRS")
@@ -215,7 +225,8 @@ class santander2ofx(OFXBase):
         # transactions
         for i, line in enumerate(self.c):
             # sort acct, dd/mm/yyyy, desc, amount
-            # 090000 45000000,10/05/2010,PAYMENT BY CHEQUE WITH SERIAL NO 102004,-88.00
+            # 090000 45000000,10/05/2010,
+            # PAYMENT BY CHEQUE WITH SERIAL NO 102004,-88.00
             sortacct, date, desc, amount = line
             date = ''.join(reversed(date.split('/')))
             desc = desc.strip("'").title()
@@ -240,6 +251,7 @@ class santander2ofx(OFXBase):
             self.x.put("NAME", desc)
             self.x.close()
         self.x.put("DTEND", date + "000000[0:GMT]")
+
 
 def main():
     parser = OptionParser()
