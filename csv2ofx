@@ -246,12 +246,12 @@ class santander2ofx(OFXBase):
             self.x.open("STMTTRN")
             self.x.put("TRNTYPE", "XFER")
             self.x.put("DTPOSTED", date)
-            self.x.put("FITID", date + str(i))
             self.x.put("TRNAMT", amount)
+            self.x.put("FITID", date + str(i))
             if desc.startswith("Payment By Cheque With Serial No "):
                 self.x.put("CHECKNUM", desc.split()[6])
                 desc = "Cheque"
-            self.x.put("NAME", desc)
+            self.x.put("MEMO", desc)
             self.x.close()
         self.x.put("DTEND", date + "000000[0:GMT]")
 
