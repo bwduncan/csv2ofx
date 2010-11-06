@@ -64,8 +64,8 @@ OLDFILEUID:NONE
 NEWFILEUID:NONE
 """)
 
-    def write(self, str):
-        self.fp.write("  " * len(self.tags) + str)
+    def write(self, text):
+        self.fp.write("  " * len(self.tags) + text)
 
     def open(self, rawtag):
         tag = rawtag.upper()
@@ -87,9 +87,9 @@ NEWFILEUID:NONE
 
 class OFXBase(object):
 
-    def __init__(self, file):
-        self.c = csv.reader(open(file))
-        self.x = ofx(open(os.path.splitext(file)[0] + '.ofx', 'w'))
+    def __init__(self, filename):
+        self.c = csv.reader(open(filename))
+        self.x = ofx(open(os.path.splitext(filename)[0] + '.ofx', 'w'))
 
     def header(self):
         self.x.open("OFX")
@@ -273,8 +273,8 @@ def main():
     elif len(args) == 0:
         parser.print_help()
     else:
-        for file in args:
-            c = csv2ofx(file)
+        for filename in args:
+            c = csv2ofx(filename)
             c.convert()
 
 if __name__ == "__main__":
