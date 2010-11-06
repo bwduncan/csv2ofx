@@ -207,8 +207,10 @@ class csv2ofx(OFXBase):
             self.x.put("TRNTYPE", "DEBIT")
             self.x.put("DTPOSTED", date)
             self.x.put("FITID", date + str(i))
+            # amounts should be negated, as it's easier to type on a phone
+            # try to do this without converting to a number type
             self.x.put("TRNAMT",
-                '-' + amount if not amount.startswith('-') else amount)
+                '-' + amount if not amount.startswith('-') else amount[1:])
             self.x.put("NAME", desc)
             self.x.close()
         if 'date' not in locals():
