@@ -261,8 +261,9 @@ def main():
         action="store_true")
     options, args = parser.parse_args()
 
+    converter = CSV2OFX
     if options.type:
-        csv2ofx = getattr(sys.modules[globals()['__name__']],
+        converter = getattr(sys.modules[globals()['__name__']],
                           "%s2OFX" % options.type)
     if options.list:
         print "Available parsers:"
@@ -272,7 +273,7 @@ def main():
         parser.print_help()
     else:
         for filename in args:
-            c = csv2ofx(filename)
+            c = converter(filename)
             c.convert()
 
 if __name__ == "__main__":
