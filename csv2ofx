@@ -48,7 +48,7 @@ import os
 from optparse import OptionParser
 
 
-class ofx(object):
+class OFX(object):
     tags = []
 
     def __init__(self, ofxfp):
@@ -73,7 +73,7 @@ NEWFILEUID:NONE
         self.tags.append(tag)
 
     def close(self, num=1):
-        for i in range(num):
+        for dummy in range(num):
             self.write("</" + self.tags.pop() + ">\n")
 
     def put(self, rawtag, value):
@@ -89,7 +89,7 @@ class OFXBase(object):
 
     def __init__(self, filename):
         self.c = csv.reader(open(filename))
-        self.x = ofx(open(os.path.splitext(filename)[0] + '.ofx', 'w'))
+        self.x = OFX(open(os.path.splitext(filename)[0] + '.ofx', 'w'))
 
     def header(self):
         self.x.open("OFX")
@@ -113,7 +113,7 @@ class OFXBase(object):
         self.x.close() # STATUS
 
 
-class rbs2ofx(OFXBase):
+class RBS2OFX(OFXBase):
 
     def convert(self):
         self.header()
@@ -129,7 +129,7 @@ class rbs2ofx(OFXBase):
             # 29/05/2009,C/L,"'CASHLINE 28MAY",-50.00,15830.45,
             # "'ACCOUNT NAME","'831531-0000000",
             # csv gives a blank field because of the trailing comma.
-            date, code, desc, amount, balance, acct, acctid, junk = line
+            date, dummy, desc, amount, dummy, dummy, acctid, dummy = line
             date = ''.join(date.split('/'))
             desc = desc.strip("'").title()
             if first: # not necessarily i == 0
@@ -147,10 +147,6 @@ class rbs2ofx(OFXBase):
                 #tranlist
                 self.x.open("BANKTRANLIST")
                 self.x.put("DTSTART", date)# + "000000[0:GMT]")
-                #         val = c.get_value("ACCTSTMT.STMTRS.DTSTART")
-                #         x.put("DTSTART", val + "000000[+1:CET]")
-                #         val = c.get_value("ACCTSTMT.STMTRS.DTEND")
-                #         x.put("DTEND", val + "000000[+1:CET]")
 
             self.x.open("STMTTRN")
             self.x.put("TRNTYPE", "XFER")
@@ -162,7 +158,7 @@ class rbs2ofx(OFXBase):
         self.x.put("DTEND", date + "000000[0:GMT]")
 
 
-class csv2ofx(OFXBase):
+class CSV2OFX(OFXBase):
 
     def convert(self):
         self.header()
@@ -178,7 +174,7 @@ class csv2ofx(OFXBase):
             if not line or len(line) < 3 or line[0] == "Date":
                 continue
             # "Date","Amount","Description"
-            (date, amount, desc), junk = line[:3], line[3:]
+            (date, amount, desc), dummy = line[:3], line[3:]
             date = ''.join(date.split('/'))
             desc = desc.strip("'").title()
             # gnucash complains if not 4-digit years
@@ -217,7 +213,7 @@ class csv2ofx(OFXBase):
             raise ValueError('Not a CSV file or empty')
 
 
-class santander2ofx(OFXBase):
+class Santander2OFX(OFXBase):
 
     def convert(self):
         self.header()
@@ -267,11 +263,11 @@ def main():
 
     if options.type:
         csv2ofx = getattr(sys.modules[globals()['__name__']],
-                          "%s2ofx" % options.type)
+                          "%s2OFX" % options.type)
     if options.list:
         print "Available parsers:"
         print
-        print '\n'.join([str(a)[:-4] for a in globals() if a.endswith("2ofx")])
+        print '\n'.join([str(a)[:-4] for a in globals() if a.endswith("2OFX")])
     elif len(args) == 0:
         parser.print_help()
     else:
