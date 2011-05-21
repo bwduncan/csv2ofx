@@ -282,7 +282,12 @@ class SantanderTXT2OFX(OFXBase):
         for line in self.c:
             field, separator, data = line[:-1].partition(":\xa0")
             if field == "Account":
-                continue
+                #bankaccount
+                self.x.open("BANKACCTFROM")
+                self.x.put("BANKID", "")
+                self.x.put("ACCTID", data)
+                self.x.put("ACCTTYPE", "BANK")
+                self.x.close()
             elif field == "From":
                 date = data.split('\xa0')[2]
                 date = ''.join(reversed(date.split('/')))
