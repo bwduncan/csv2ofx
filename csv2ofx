@@ -282,12 +282,12 @@ class SantanderTXT2OFX(OFXBase):
         i = 0
         # lines => list of transactions
         for line in self.c:
-            field, separator, data = line.partition(": ")
+            field, separator, data = line.partition(":\xa0")
             if header:
                 if not line or field == "Account:":
                     continue
                 elif field == "From":
-                    date = data.split(' ')[2]
+                    date = data.split('\xa0')[2]
                     date = ''.join(reversed(date.split('/')))
 
                     #tranlist
@@ -300,7 +300,7 @@ class SantanderTXT2OFX(OFXBase):
             elif field == "Description":
                 desc = data.title()
             elif field == "Amount":
-                amount = data.split(' ')[0]
+                amount = data.split('\xa0')[0]
             elif field == "":
                 assert date and desc and amount
                 self.x.open("STMTTRN")
