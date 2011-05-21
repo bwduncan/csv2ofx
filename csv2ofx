@@ -266,6 +266,57 @@ class Santander2OFX(OFXBase):
         self.x.put("DTEND", date + "000000[0:GMT]")
 
 
+class SantanderTXT2OFX(OFXBase):
+
+    def __init__(self, filename):
+        self.c = open(filename)
+        super(SantanderTXT2OFX, self).__init__(filename)
+
+    def convert(self):
+        self.header()
+        self.x.open("STMTRS")
+        self.x.put("CURDEF", "GBP")
+
+        header = True
+        date = desc = amount = ''
+        i = 0
+        # lines => list of transactions
+        for line in self.c:
+            field, separator, data = line.partition(": ")
+            if header:
+                if not line or field == "Account:":
+                    continue
+                elif field == "From":
+                    date = data.split(' ')[2]
+                    date = ''.join(reversed(date.split('/')))
+
+                    #tranlist
+                    self.x.open("BANKTRANLIST")
+                    self.x.put("DTSTART", date)# + "000000[0:GMT]")
+                    header = False
+
+            if field == "Date":
+                date = ''.join(reversed(data.split('/')))
+            elif field == "Description":
+                desc = data.title()
+            elif field == "Amount":
+                amount = data.split(' ')[0]
+            elif field == "":
+                assert date and desc and amount
+                self.x.open("STMTTRN")
+                self.x.put("TRNTYPE", "XFER")
+                self.x.put("DTPOSTED", date)
+                self.x.put("TRNAMT", amount)
+                self.x.put("FITID", date + str(i))
+                i = i + 1
+                if desc.startswith("Payment By Cheque With Serial No "):
+                    self.x.put("CHECKNUM", desc.split()[6])
+                    desc = "Cheque"
+                self.x.put("MEMO", desc)
+                self.x.close()
+        self.x.put("DTEND", date + "000000[0:GMT]")
+
+
 def main():
     parser = OptionParser()
     parser.add_option("-t", "--type", help="Use this parser.")
