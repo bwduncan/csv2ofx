@@ -268,7 +268,7 @@ class Santander2OFX(OFXBase):
 class SantanderTXT2OFX(OFXBase):
 
     def __init__(self, filename):
-        self.c = open(filename)
+        self.c = open(filename, 'U')
         super(SantanderTXT2OFX, self).__init__(filename)
 
     def convert(self):
@@ -276,25 +276,22 @@ class SantanderTXT2OFX(OFXBase):
         self.x.open("STMTRS")
         self.x.put("CURDEF", "GBP")
 
-        header = True
         date = desc = amount = ''
         i = 0
         # lines => list of transactions
         for line in self.c:
-            field, separator, data = line.partition(":\xa0")
-            if header:
-                if not line or field == "Account:":
-                    continue
-                elif field == "From":
-                    date = data.split('\xa0')[2]
-                    date = ''.join(reversed(date.split('/')))
+            field, separator, data = line[:-2].partition(":\xa0")
+            if field == "Account":
+                continue
+            elif field == "From":
+                date = data.split('\xa0')[2]
+                date = ''.join(reversed(date.split('/')))
 
-                    #tranlist
-                    self.x.open("BANKTRANLIST")
-                    self.x.put("DTSTART", date)# + "000000[0:GMT]")
-                    header = False
+                #tranlist
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", date)# + "000000[0:GMT]")
 
-            if field == "Date":
+            elif field == "Date":
                 date = ''.join(reversed(data.split('/')))
             elif field == "Description":
                 desc = data.title()
