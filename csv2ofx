@@ -297,7 +297,7 @@ class SantanderTXT2OFX(OFXBase):
                 desc = data.title()
             elif field == "Amount":
                 amount = data.split('\xa0')[0]
-            elif field == "":
+            elif field == "Balance":
                 assert date and desc and amount
                 self.x.open("STMTTRN")
                 self.x.put("TRNTYPE", "XFER")
