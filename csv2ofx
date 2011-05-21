@@ -88,7 +88,6 @@ NEWFILEUID:NONE
 class OFXBase(object):
 
     def __init__(self, filename):
-        self.c = csv.reader(open(filename))
         self.x = OFX(open(os.path.splitext(filename)[0] + '.ofx', 'w'))
 
     def header(self):
