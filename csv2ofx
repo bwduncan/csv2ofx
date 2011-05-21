@@ -280,7 +280,7 @@ class SantanderTXT2OFX(OFXBase):
         i = 0
         # lines => list of transactions
         for line in self.c:
-            field, separator, data = line[:-2].partition(":\xa0")
+            field, separator, data = line[:-1].partition(":\xa0")
             if field == "Account":
                 continue
             elif field == "From":
