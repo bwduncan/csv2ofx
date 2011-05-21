@@ -288,13 +288,14 @@ class SantanderTXT2OFX(OFXBase):
                 self.x.put("ACCTID", data)
                 self.x.put("ACCTTYPE", "BANK")
                 self.x.close()
+
+                assert date
+                #tranlist
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", date + "000000.000[0:GMT]")
             elif field == "From":
                 date = data.split('\xa0')[2]
                 date = ''.join(reversed(date.split('/')))
-
-                #tranlist
-                self.x.open("BANKTRANLIST")
-                self.x.put("DTSTART", date)# + "000000[0:GMT]")
 
             elif field == "Date":
                 date = ''.join(reversed(data.split('/')))
@@ -306,7 +307,7 @@ class SantanderTXT2OFX(OFXBase):
                 assert date and desc and amount
                 self.x.open("STMTTRN")
                 self.x.put("TRNTYPE", "XFER")
-                self.x.put("DTPOSTED", date)
+                self.x.put("DTPOSTED", date + "000000.000[0:GMT]")
                 self.x.put("TRNAMT", amount)
                 self.x.put("FITID", date + str(i))
                 i = i + 1
@@ -315,7 +316,7 @@ class SantanderTXT2OFX(OFXBase):
                     desc = "Cheque"
                 self.x.put("MEMO", desc)
                 self.x.close()
-        self.x.put("DTEND", date + "000000[0:GMT]")
+        self.x.put("DTEND", date + "000000.000[0:GMT]")
 
 
 def main():
