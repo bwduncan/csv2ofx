@@ -115,6 +115,10 @@ class OFXBase(object):
 
 class RBS2OFX(OFXBase):
 
+    def __init__(self, filename):
+        self.c = csv.reader(open(filename))
+        super(RBS2OFX, self).__init__(filename)
+
     def convert(self):
         self.header()
         self.x.open("STMTRS")
@@ -159,6 +163,10 @@ class RBS2OFX(OFXBase):
 
 
 class CSV2OFX(OFXBase):
+
+    def __init__(self, filename):
+        self.c = csv.reader(open(filename))
+        super(CSV2OFX, self).__init__(filename)
 
     def convert(self):
         self.header()
@@ -214,6 +222,10 @@ class CSV2OFX(OFXBase):
 
 
 class Santander2OFX(OFXBase):
+
+    def __init__(self, filename):
+        self.c = csv.reader(open(filename))
+        super(Santander2OFX, self).__init__(filename)
 
     def convert(self):
         self.header()
