@@ -325,6 +325,107 @@ class SantanderTXT2OFX(OFXBase):
         self.x.put("DTEND", date + "000000.000[0:GMT]")
 
 
+class SantanderCCQIF2OFX(OFXBase):
+
+    def __init__(self, filename):
+        self.c = open(filename, 'U')
+        super(SantanderCCQIF2OFX, self).__init__(filename)
+
+    def convert(self):
+        self.header()
+        self.x.open("STMTRS")
+        self.x.put("CURDEF", "GBP")
+
+        date = desc = amount = ''
+        i = 0
+        account = False
+        # lines => list of transactions
+        for line in self.c:
+            field, data = line[:-1][0], line[:-1][1:]
+            if field == "M" and not account:  # Account name
+                account = True
+                # bankaccount
+                self.x.open("BANKACCTFROM")
+                self.x.put("BANKID", "")
+                self.x.put("ACCTID", data)
+                self.x.put("ACCTTYPE", "BANK")
+                self.x.close()
+
+                assert date
+                # tranlist
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", date + "000000.000[0:GMT]")
+            elif field == "D":  # Date
+                date = ''.join(reversed(data.split('/')))
+            elif field == "P":  # Description
+                desc = data.title()
+            elif field == "T":  # Amount
+                amount = data
+            elif field == "^":  # End of record
+                assert date and desc and amount
+                self.x.open("STMTTRN")
+                self.x.put("TRNTYPE", "XFER")
+                self.x.put("DTPOSTED", date + "000000.000[0:GMT]")
+                self.x.put("TRNAMT", amount)
+                self.x.put("FITID", date + str(i))
+                i = i + 1
+                if desc.startswith("Payment By Cheque With Serial No "):
+                    self.x.put("CHECKNUM", desc.split()[6])
+                    desc = "Cheque"
+                self.x.put("MEMO", desc)
+                self.x.close()
+        self.x.put("DTEND", date + "000000.000[0:GMT]")
+
+
+class EUGCQIF2OFX(OFXBase):
+
+    def __init__(self, filename):
+        self.c = open(filename, 'U')
+        super(EUGCQIF2OFX, self).__init__(filename)
+
+    def convert(self):
+        self.header()
+        self.x.open("STMTRS")
+        self.x.put("CURDEF", "GBP")
+
+        date = desc = amount = ''
+        i = 0
+        account = False
+        # lines => list of transactions
+        for line in self.c:
+            field, data = line[:-1][0], line[:-1][1:]
+            if field == "N" and not account:  # Account name
+                account = True
+                # bankaccount
+                self.x.open("BANKACCTFROM")
+                self.x.put("BANKID", "")
+                self.x.put("ACCTID", data)
+                self.x.put("ACCTTYPE", "BANK")
+                self.x.close()
+
+                assert date
+                # tranlist
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", date + "000000.000[0:GMT]")
+            elif field == "D":  # Date
+                date = ''.join(data.split('-'))
+            elif field == "P":  # Description
+                desc = data
+            elif field == "T":  # Amount
+                amount = data
+            elif field == "^":  # End of record
+                assert date and desc and amount
+                self.x.open("STMTTRN")
+                self.x.put("TRNTYPE", "XFER")
+                self.x.put("DTPOSTED", date + "000000.000[0:GMT]")
+                self.x.put("TRNAMT", amount)
+                self.x.put("FITID", date + str(i))
+                i = i + 1
+                self.x.put("MEMO", desc)
+                self.x.close()
+        self.x.put("DTEND", date + "000000.000[0:GMT]")
+
+
 def main():
     parser = OptionParser()
     parser.add_option("-t", "--type", help="Use this parser.")
