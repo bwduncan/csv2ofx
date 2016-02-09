@@ -306,7 +306,7 @@ class SantanderTXT2OFX(OFXBase):
             elif field == "Date":
                 date = ''.join(reversed(data.split('/')))
             elif field == "Description":
-                desc = data.title()
+                desc = data.title().replace('&Amp;', '&')
             elif field == "Amount":
                 amount = data.split('\xa0')[0]
             elif field == "Balance":
