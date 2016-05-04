@@ -275,7 +275,7 @@ class Santander2OFX(OFXBase):
 class SantanderTXT2OFX(OFXBase):
 
     def __init__(self, filename):
-        self.c = open(filename, 'U')
+        self.c = open(filename, encoding='iso-8859-1')
         super(SantanderTXT2OFX, self).__init__(filename)
 
     def convert(self):
@@ -287,7 +287,7 @@ class SantanderTXT2OFX(OFXBase):
         i = 0
         # lines => list of transactions
         for line in self.c:
-            field, _, data = line[:-1].partition(":\xa0")
+            field, _, data = line[:-1].partition(u":\u00a0")
             if field == "Account":
                 # bankaccount
                 self.x.open("BANKACCTFROM")
@@ -329,7 +329,7 @@ class SantanderTXT2OFX(OFXBase):
 class SantanderCCQIF2OFX(OFXBase):
 
     def __init__(self, filename):
-        self.c = open(filename, 'U')
+        self.c = open(filename, encoding='iso-8859-1')
         super(SantanderCCQIF2OFX, self).__init__(filename)
 
     def convert(self):
@@ -381,7 +381,7 @@ class SantanderCCQIF2OFX(OFXBase):
 class EUGCQIF2OFX(OFXBase):
 
     def __init__(self, filename):
-        self.c = open(filename, 'U')
+        self.c = open(filename, encoding='iso-8859-1')
         super(EUGCQIF2OFX, self).__init__(filename)
 
     def convert(self):
