@@ -391,7 +391,7 @@ class EUGCQIF2OFX(OFXBase):
 
         date = desc = amount = ''
         i = 0
-        account = False
+        trnlist = account = False
         # lines => list of transactions
         for line in self.c:
             field, data = line[:-1][0], line[:-1][1:]
@@ -404,17 +404,21 @@ class EUGCQIF2OFX(OFXBase):
                 self.x.put("ACCTTYPE", "BANK")
                 self.x.close()
 
-                assert date
-                # tranlist
-                self.x.open("BANKTRANLIST")
-                self.x.put("DTSTART", date + "000000.000[0:GMT]")
             elif field == "D":  # Date
                 date = ''.join(data.split('-'))
+                if not trnlist:
+                    trnlist = True
+                    assert date
+                    # tranlist
+                    self.x.open("BANKTRANLIST")
+                    self.x.put("DTSTART", date + "000000.000[0:GMT]")
             elif field == "P":  # Description
                 desc = data
             elif field == "T":  # Amount
                 amount = data
             elif field == "^":  # End of record
+                if not amount or not desc:
+                    continue
                 assert date and desc and amount
                 self.x.open("STMTTRN")
                 self.x.put("TRNTYPE", "XFER")
