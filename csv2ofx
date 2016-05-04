@@ -79,7 +79,7 @@ NEWFILEUID:NONE
 
     def put(self, rawtag, value):
         tag = rawtag.upper()
-        self.write("<" + tag + ">" + value + "</" + tag + ">\n")
+        self.write("<{tag}>{value!s}</{tag}>\n".format(tag=tag, value=value))
 
     def __del__(self):
         self.close(len(self.tags))
