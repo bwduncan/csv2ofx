@@ -1,4 +1,4 @@
-#!/usr/bin/python -O
+#!/usr/bin/python3
 # vim: set ai et sts=4 ts=4 sw=4:
 #
 # csv2ofx - convert fixed-form CSV to OFX
@@ -41,6 +41,7 @@
 ## Enjoy ;-)
 
 
+from __future__ import print_function
 import sys
 import time
 import csv
@@ -204,7 +205,7 @@ class CSV2OFX(OFXBase):
                 if len(date[0]) == 1:  # pad day
                     date[0] = '%02d' % int(date[0])
                 date = ''.join(reversed(date))
-                print >> sys.stderr, "Assuming", line[0], "meant", date
+                print("Assuming", line[0], "meant", date, file=sys.stderr)
 
             if first:
                 first = False
@@ -438,9 +439,9 @@ def main():
         converter = getattr(sys.modules[globals()['__name__']],
                             "%s2OFX" % options.type)
     if options.list:
-        print "Available parsers:"
-        print
-        print '\n'.join([str(a)[:-4] for a in globals() if a.endswith("2OFX")])
+        print("Available parsers:")
+        print()
+        print('\n'.join([str(a)[:-4] for a in globals() if a.endswith("2OFX")]))
     elif len(args) == 0:
         parser.print_help()
     else:
