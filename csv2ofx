@@ -427,6 +427,51 @@ class EUGCQIF2OFX(OFXBase):
         self.x.put("DTEND", date + "000000.000[0:GMT]")
 
 
+class EUGCDB2OFX(OFXBase):
+    """Fuel for trip (2016-01-01) 	2016-01-01	 	7.60
+    MOT 	2016-01-01	49.00	 
+    """
+
+    def __init__(self, filename):
+        self.c = open(filename, encoding='iso-8859-1')
+        super().__init__(filename)
+
+    def convert(self):
+        self.header()
+        self.x.open("STMTRS")
+        self.x.put("CURDEF", "GBP")
+
+        date = desc = amount = ''
+        # bankaccount
+        self.x.open("BANKACCTFROM")
+        self.x.put("BANKID", "")
+        self.x.put("ACCTID", 'Assets:Current Assets:Beast Fund')
+        self.x.put("ACCTTYPE", "BANK")
+        self.x.close()
+        # lines => list of transactions
+        for i, line in enumerate(self.c):
+            fields = line[:-1].split('\t')
+            desc = fields[0].strip()
+            date = ''.join(fields[1].split('-'))
+            if fields[2].strip():
+                amount = float(fields[2].strip())
+            elif fields[3].strip():
+                amount = - float(fields[3].strip())
+            if i == 0:  # Account name
+                # tranlist
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", date + "000000.000[0:GMT]")
+            assert date and desc and amount
+            self.x.open("STMTTRN")
+            self.x.put("TRNTYPE", "XFER")
+            self.x.put("DTPOSTED", date + "000000.000[0:GMT]")
+            self.x.put("TRNAMT", amount)
+            self.x.put("FITID", date + str(i))
+            self.x.put("MEMO", desc)
+            self.x.close()
+        self.x.put("DTEND", date + "000000.000[0:GMT]")
+
+
 def main():
     parser = OptionParser()
     parser.add_option("-t", "--type", help="Use this parser.")
