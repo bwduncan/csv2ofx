@@ -44,6 +44,7 @@
 from __future__ import print_function
 import sys
 import time
+import datetime
 import csv
 import os
 from optparse import OptionParser
@@ -523,6 +524,62 @@ class MonzoQIF2OFX(OFXBase):
                 self.x.put("MEMO", desc)
                 self.x.close()
         self.x.put("DTEND", date + "000000.000[0:GMT]")
+
+
+class FalkeODS2OFX(OFXBase):
+
+    def __init__(self, filename):
+        import pyexcel_ods
+        self.c = pyexcel_ods.read_data(filename)
+        # Override filename to put result outside of Dropbox.
+        super(FalkeODS2OFX, self).__init__(os.getenv('HOME') + '/Downloads/' + os.path.basename(filename))
+
+    def convert(self):
+        self.header()
+        self.x.open("STMTRS")
+        self.x.put("CURDEF", "GBP")
+
+        self.x.open("BANKACCTFROM")
+        self.x.put("BANKID", "")
+        self.x.put("ACCTID", "Falke")
+        self.x.put("ACCTTYPE", "BANK")
+        self.x.close()
+        i = 0
+        account = False
+        # lines => list of transactions
+        for line in self.c['Duncan']:
+            if not line:
+                continue
+            if line[0] == 'Date' and line != ['Date', 'Transaction', 'Hobbs', 'Engine time', 'Amount', 'Balance']:
+                print("Warning: Schema has changed, this might not work.")
+                continue
+            date = line[0]
+            if type(date) != datetime.date:
+                continue
+            if not account:  # Account name
+                account = True
+                # bankaccount
+
+                assert date
+                # tranlist
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", str(date).replace('-', '') + "000000.000[0:GMT]")
+            amount = float(line[4].split(' ')[0])
+            desc = line[1]
+            if desc == 'Flight':
+                hobbs = line[2]
+                desc += ' in Falke ({}m, {}h)'.format(hobbs.hour * 60 + hobbs.minute, line[3])
+            if len(line) > 6 and line[6].startswith('50-50 '):
+                desc += ' split with ' + line[6].partition(' ')[2]
+            self.x.open("STMTTRN")
+            self.x.put("TRNTYPE", "XFER")
+            self.x.put("DTPOSTED", str(date).replace('-', '') + "000000.000[0:GMT]")
+            self.x.put("TRNAMT", amount)
+            self.x.put("FITID", str(date).replace('-', '') + str(i))
+            i = i + 1
+            self.x.put("MEMO", desc)
+            self.x.close()
+        self.x.put("DTEND", str(date).replace('-', '') + "000000.000[0:GMT]")
 
 
 def main():
