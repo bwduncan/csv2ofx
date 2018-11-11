@@ -476,6 +476,55 @@ class EUGCDB2OFX(OFXBase):
         self.x.put("DTEND", date + "000000.000[0:GMT]")
 
 
+class MonzoQIF2OFX(OFXBase):
+
+    def __init__(self, filename):
+        self.c = open(filename, encoding='iso-8859-1')
+        super(MonzoQIF2OFX, self).__init__(filename)
+
+    def convert(self):
+        self.header()
+        self.x.open("STMTRS")
+        self.x.put("CURDEF", "GBP")
+
+        date = desc = amount = ''
+        i = 0
+        account = False
+        # lines => list of transactions
+        for line in self.c:
+            field, data = line[:-1][0], line[:-1][1:]
+            if field == "M" and not account:  # Account name
+                account = True
+                # bankaccount
+                self.x.open("BANKACCTFROM")
+                self.x.put("BANKID", "")
+                self.x.put("ACCTID", data)
+                self.x.put("ACCTTYPE", "BANK")
+                self.x.close()
+
+                assert date
+                # tranlist
+                self.x.open("BANKTRANLIST")
+                self.x.put("DTSTART", date + "000000.000[0:GMT]")
+            elif field == "D":  # Date
+                date = ''.join(reversed(data.split('/')))
+            elif field == "P":  # Description
+                desc = data.title()
+            elif field == "T":  # Amount
+                amount = data
+            elif field == "^":  # End of record
+                assert date and desc and amount
+                self.x.open("STMTTRN")
+                self.x.put("TRNTYPE", "XFER")
+                self.x.put("DTPOSTED", date + "000000.000[0:GMT]")
+                self.x.put("TRNAMT", amount)
+                self.x.put("FITID", date + str(i))
+                i = i + 1
+                self.x.put("MEMO", desc)
+                self.x.close()
+        self.x.put("DTEND", date + "000000.000[0:GMT]")
+
+
 def main():
     parser = OptionParser()
     parser.add_option("-t", "--type", help="Use this parser.")
