@@ -550,11 +550,12 @@ class FalkeODS2OFX(OFXBase):
             if not line:
                 continue
             if line[0] == 'Date' and line != ['Date', 'Transaction', 'Hobbs', 'Engine time', 'Amount', 'Balance']:
-                print("Warning: Schema has changed, this might not work.")
+                print("Warning: Schema has changed, this might not work.", file=sys.stderr)
                 continue
-            date = line[0]
-            if type(date) != datetime.date:
+            if type(line[0]) != datetime.date:
                 continue
+
+            date = str(line[0]).replace('-', '')
             if not account:  # Account name
                 account = True
                 # bankaccount
@@ -562,8 +563,8 @@ class FalkeODS2OFX(OFXBase):
                 assert date
                 # tranlist
                 self.x.open("BANKTRANLIST")
-                self.x.put("DTSTART", str(date).replace('-', '') + "000000.000[0:GMT]")
-            amount = float(line[4].split(' ')[0])
+                self.x.put("DTSTART", date + "000000.000[0:GMT]")
+            amount = float(line[4].replace(' GBP', ''))
             desc = line[1]
             if desc == 'Flight':
                 hobbs = line[2]
@@ -572,13 +573,13 @@ class FalkeODS2OFX(OFXBase):
                 desc += ' split with ' + line[6].partition(' ')[2]
             self.x.open("STMTTRN")
             self.x.put("TRNTYPE", "XFER")
-            self.x.put("DTPOSTED", str(date).replace('-', '') + "000000.000[0:GMT]")
+            self.x.put("DTPOSTED", date + "000000.000[0:GMT]")
             self.x.put("TRNAMT", amount)
-            self.x.put("FITID", str(date).replace('-', '') + str(i))
+            self.x.put("FITID", date + str(i))
             i = i + 1
             self.x.put("MEMO", desc)
             self.x.close()
-        self.x.put("DTEND", str(date).replace('-', '') + "000000.000[0:GMT]")
+        self.x.put("DTEND", date + "000000.000[0:GMT]")
 
 
 def main():
