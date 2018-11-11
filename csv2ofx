@@ -41,7 +41,6 @@
 ## Enjoy ;-)
 
 
-from __future__ import print_function
 import sys
 import time
 import datetime
@@ -288,7 +287,7 @@ class SantanderTXT2OFX(OFXBase):
         i = 0
         # lines => list of transactions
         for line in self.c:
-            field, _, data = line[:-1].partition(u":\u00a0")
+            field, _, data = line[:-1].partition(":\u00a0")
             if field == "Account":
                 # bankaccount
                 self.x.open("BANKACCTFROM")
