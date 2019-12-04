@@ -46,10 +46,10 @@ import time
 import datetime
 import csv
 import os
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 
-class OFX(object):
+class OFX:
     def __init__(self, ofxfp):
         self.tags = []
         self.fp = ofxfp
@@ -92,7 +92,7 @@ NEWFILEUID:NONE
         self.close()
 
 
-class OFXBase(object):
+class OFXBase:
 
     def __init__(self, filename):
         self.x = OFX(open(os.path.splitext(filename)[0] + '.ofx', 'w'))
@@ -123,7 +123,7 @@ class RBS2OFX(OFXBase):
 
     def __init__(self, filename):
         self.c = csv.reader(open(filename))
-        super(RBS2OFX, self).__init__(filename)
+        super().__init__(filename)
 
     def convert(self):
         self.header()
@@ -172,7 +172,7 @@ class CSV2OFX(OFXBase):
 
     def __init__(self, filename):
         self.c = csv.reader(open(filename))
-        super(CSV2OFX, self).__init__(filename)
+        super().__init__(filename)
 
     def convert(self):
         self.header()
@@ -231,7 +231,7 @@ class Santander2OFX(OFXBase):
 
     def __init__(self, filename):
         self.c = csv.reader(open(filename))
-        super(Santander2OFX, self).__init__(filename)
+        super().__init__(filename)
 
     def convert(self):
         self.header()
@@ -275,8 +275,8 @@ class Santander2OFX(OFXBase):
 class SantanderTXT2OFX(OFXBase):
 
     def __init__(self, filename):
-        self.c = open(filename, encoding='iso-8859-1')
-        super(SantanderTXT2OFX, self).__init__(filename)
+        self.c = open(filename, encoding='utf-8')
+        super().__init__(filename)
 
     def convert(self):
         self.header()
@@ -329,8 +329,8 @@ class SantanderTXT2OFX(OFXBase):
 class SantanderCCQIF2OFX(OFXBase):
 
     def __init__(self, filename):
-        self.c = open(filename, encoding='iso-8859-1')
-        super(SantanderCCQIF2OFX, self).__init__(filename)
+        self.c = open(filename, encoding='utf-8')
+        super().__init__(filename)
 
     def convert(self):
         self.header()
@@ -381,8 +381,8 @@ class SantanderCCQIF2OFX(OFXBase):
 class EUGCQIF2OFX(OFXBase):
 
     def __init__(self, filename):
-        self.c = open(filename, encoding='iso-8859-1')
-        super(EUGCQIF2OFX, self).__init__(filename)
+        self.c = open(filename, encoding='utf-8')
+        super().__init__(filename)
 
     def convert(self):
         self.header()
@@ -437,7 +437,7 @@ class EUGCDB2OFX(OFXBase):
     """
 
     def __init__(self, filename):
-        self.c = open(filename, encoding='iso-8859-1')
+        self.c = open(filename, encoding='utf-8')
         super().__init__(filename)
 
     def convert(self):
@@ -479,8 +479,8 @@ class EUGCDB2OFX(OFXBase):
 class MonzoQIF2OFX(OFXBase):
 
     def __init__(self, filename):
-        self.c = open(filename, encoding='iso-8859-1')
-        super(MonzoQIF2OFX, self).__init__(filename)
+        self.c = open(filename, encoding='utf-8')
+        super().__init__(filename)
 
     def convert(self):
         self.header()
@@ -531,7 +531,7 @@ class FalkeODS2OFX(OFXBase):
         import pyexcel_ods
         self.c = pyexcel_ods.read_data(filename)
         # Override filename to put result outside of Dropbox.
-        super(FalkeODS2OFX, self).__init__(os.getenv('HOME') + '/Downloads/' + os.path.basename(filename))
+        super().__init__(os.getenv('HOME') + '/Downloads/' + os.path.basename(filename))
 
     def convert(self):
         self.header()
@@ -583,24 +583,25 @@ class FalkeODS2OFX(OFXBase):
 
 
 def main():
-    parser = OptionParser()
-    parser.add_option("-t", "--type", help="Use this parser.")
-    parser.add_option("-l", "--list", help="Show the available parsers.",
-                      action="store_true")
-    options, args = parser.parse_args()
+    parser = ArgumentParser()
+    parser.add_argument("-t", "--type", help="Use this parser.")
+    parser.add_argument("-l", "--list", help="Show the available parsers.",
+                        action="store_true")
+    parser.add_argument('files', metavar='files', nargs='*')
+    args = parser.parse_args()
 
     converter = CSV2OFX
-    if options.type:
+    if args.type:
         converter = getattr(sys.modules[globals()['__name__']],
-                            "%s2OFX" % options.type)
-    if options.list:
+                            "%s2OFX" % args.type)
+    if args.list:
         print("Available parsers:")
         print()
         print('\n'.join([str(a)[:-4] for a in globals() if a.endswith("2OFX")]))
-    elif len(args) == 0:
+    elif not args.files:
         parser.print_help()
     else:
-        for filename in args:
+        for filename in args.files:
             converter(filename).convert()
 
 if __name__ == "__main__":
